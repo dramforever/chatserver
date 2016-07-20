@@ -191,13 +191,21 @@ __END__
   function keydown(t, e) {
     if(e.key == "Enter" && t.value != "") {
       if(nick) {
+        theMessage = t.value;
+        t.value = "";
+
         var xhr = new XMLHttpRequest();
         xhr.open("POST", "/post/" + nick);
+
         xhr.onload = function() {
           t.focus();
         }
-        xhr.send(t.value);
-        t.value = "";
+
+        xhr.onerror = function() {
+          say("! Message [" + theMessage + "] failed");
+        }
+
+        xhr.send(theMessage);
       } else {
         if(/[^a-zA-Z0-9_-]/.test(t.value)) {
           say("! Bad nickname " +  t.value);
