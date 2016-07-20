@@ -154,9 +154,12 @@ __END__
 
   function connect() {
     src = new EventSource("/sse/" + nick);
+    
     src.onmessage = function(event) {
+      errored = false
       say(event.data);
     }
+
     src.onerror = function(event) {
       if(! errored) {
         if(src.readyState == src.CONNECTING)
@@ -172,6 +175,7 @@ __END__
     }
 
     src.addEventListener("ping", function(event) {
+      errored = false;
       last_ping_time = Date.now();
     });
     last_ping_time = Date.now();
@@ -179,6 +183,7 @@ __END__
     setInterval(function() {
       if(! errored && Date.now() - last_ping_time > 5000)
         say("! Might have lost contact with server");
+        errored = true;
     }, 1000)
   }
 
