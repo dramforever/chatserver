@@ -152,6 +152,12 @@ __END__
     src.onmessage = function(event) {
       say(event.data);
     }
+    src.onerror = function(event) {
+      if(src.readyState == src.CONNECTING)
+        say("! Reconnecting");
+      else
+        say("! EventSource error");
+    }
   }
 
   function keydown(t, e) {
