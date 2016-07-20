@@ -218,6 +218,7 @@ __END__
           say("* Now talk into the box at the bottom of the page");
         }
         t.value = "";
+        t.placeholder = nick;
       }
     }
   }
