@@ -13,7 +13,7 @@ PREFIX = rand.to_s.slice( (2..-1) )
 helpers do
   def message(msg, id: nil)
     id = $msgs.length - 1 unless id
-    "data: [#{Time.now.strftime "%H:%M:%S"}] #{msg}\r\nid: #{msg}\r\n\r\n"
+    "data: [#{Time.now.strftime "%H:%M:%S"}] #{msg}\r\nid: #{id}\r\n\r\n"
   end
 
   def broadcast(msg)
@@ -27,39 +27,63 @@ helpers do
     end
     $msgs << msg
   end
-end
 
-get "/" do
-  p $msgs
-  erb :home
-end
-
-get "/sse/:nick" do
-  headers "Content-Type" => "text/event-stream"
-
-  stream :keep_open do |f|
-    f << message("Connected")
-    last_id = request.env["HTTP_LAST_EVENT_ID"]
-    last_id = -1 unless last_id
-    
-    if not last_id or $msgs[last_id.to_i + 1 .. -1]
-      $msgs[last_id.to_i + 1 .. -1].each do |m|
-        f << m
-      end
-    end
-
-    $subs << f
-
-    unless request.env["HTTP_LAST_EVENT_ID"]
-      f << message("---- Historical messages ----")
-      broadcast message("#{params[:nick]} joined")
+  def filter_nick
+    if /[^a-zA-Z0-9_-]/ === params[:nick]
+      halt 400, message("That was not a valid nickname")
     end
   end
 end
 
+COOKIE = rand.to_s
+SERVER_START_TIME = Time.now
+
+before do
+  cookie = request.cookies["dram_chat"]
+  if cookie == COOKIE
+    @last_event_id = request.env["HTTP_LAST_EVENT_ID"]
+  else
+    response.set_cookie "dram_chat", COOKIE
+    @last_event_id = nil
+  end
+end
+
+get "/" do
+  erb :home
+end
+
+get "/sse/:nick" do
+  filter_nick
+
+  headers "Content-Type" => "text/event-stream"
+
+  stream :keep_open do |f|
+    if @last_event_id
+      f << message("* Reconnected")
+    else
+      f << message( "* Connected; server started at: " +
+                    SERVER_START_TIME.strftime("%H:%M:%S"))
+    end
+
+    if @last_event_id
+      if $msgs[@last_event_id.to_i + 1 .. -1]
+        $msgs[@last_event_id.to_i + 1 .. -1].each { |m| f << m }
+      end
+    else
+      $msgs.each { |m| f << m }
+      f << message("---- Chat history ----") unless $msgs.empty?
+      broadcast message("#{params[:nick]} joined")
+    end
+
+    $subs << f
+  end
+end
+
 post "/post/:nick" do
+  filter_nick
+
   broadcast message(
-    "#{params[:nick]}: #{request.body.read}",
+    "#{params[:nick]}: #{request.body.read(1024).gsub(/[\r\n]/,"")}",
     id: $msgs.length)
 
   "ok"
@@ -69,23 +93,63 @@ __END__
 
 @@ home
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<input onkeydown="keydown(this, event)" />
-<ul id="list"></ul>
-<style> body { font-size: 16; font-family: Consolas, monospace; } </style>
+<div id="list"></div>
+
+<input autofocus onkeydown="keydown(this, event)" id="thebox" data-nick="dram"/>
+
+<style>
+  body {
+    font-size: 16px;
+    font-family: Consolas, monospace;
+    padding-bottom: 45px;
+  }
+ 
+  #list {
+    margin-left: 20px;
+  }
+
+  #thebox {
+    position: fixed;
+    bottom: 0px;
+    left: 0px;
+    width: 100%;
+    padding: 3px;
+    padding-left: 10px;
+    padding-bottom: 13px;
+    font-size: 16px;
+    font-family: Consolas, monospace;
+  }
+
+  #thebox:before {
+    content: attr(data-nick);
+  }
+</style>
 <script>
   var list = document.getElementById("list");
   var src, nick;
 
   function say(msg) {
-      var li = document.createElement("li");
-      li.textContent = msg;
-      list.insertBefore(li, list.firstChild);
+    var shouldScroll =
+      window.scrollY + window.innerHeight
+      == document.body.scrollHeight;
+
+    var li = document.createElement("div");
+    li.textContent = msg;
+    if(msg[11] == "*")
+      li.style.color = "green";
+    if(msg[0] == "*")
+      li.style.color = "darkblue";
+    if(msg[0] == "!")
+      li.style.color = "red";
+    list.appendChild(li);
+
+    if(shouldScroll) li.scrollIntoView();
   }
 
   function connect() {
     src = new EventSource("/sse/" + nick);
     src.onmessage = function(event) {
-      say(event.data)
+      say(event.data);
     }
   }
 
@@ -100,14 +164,21 @@ __END__
         xhr.send(t.value);
         t.value = "";
       } else {
-        nick = t.value.replace(/[^a-zA-Z]/g, "");
+        if(/[^a-zA-Z0-9_-]/.test(t.value)) {
+          say("! Bad nickname " +  t.value);
+          say("! Only letters, digits, '-' or '_' please.");
+        } else {
+          nick = t.value;
+          connect();
+          say("");
+          say("* You are now connected as " + nick);
+          say("* Now talk into the box at the bottom of the page");
+        }
         t.value = "";
-        connect();
       }
     }
   }
 
-  say("After you connect, you can talk into the box above");
-  say("Input nickname and press Enter");
-  say("Welcome to dram chat.");
+  say("* Welcome to dram chat.");
+  say("* Input nickname and press Enter");
 </script>
