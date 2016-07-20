@@ -152,7 +152,7 @@ __END__
     if(shouldScroll) li.scrollIntoView();
   }
 
-  function connect() {
+  function setup_src() {
     src = new EventSource("/sse/" + nick);
     src.onmessage = function(event) {
       say(event.data);
@@ -174,12 +174,18 @@ __END__
     src.addEventListener("ping", function(event) {
       last_ping_time = Date.now();
     });
+  }
+
+  function connect() {
+    setup_src();
 
     last_ping_time = Date.now();
 
     setInterval(function() {
       if(! errored && Date.now() - last_ping_time > 10000) {
         say("! Lost contact with server");
+        src.close();
+        setup_src();
         errored = true;
       }
     }, 2000)
