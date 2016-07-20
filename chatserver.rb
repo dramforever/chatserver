@@ -79,7 +79,7 @@ get "/sse/:nick" do
 
     loop do
       f << "event: ping\r\ndata: ping\r\nid: #{$msgs.length - 1}\r\n\r\n"
-      sleep 5
+      sleep 2
     end
   end
 end
@@ -152,7 +152,7 @@ __END__
     if(shouldScroll) li.scrollIntoView();
   }
 
-  function setup_src() {
+  function connect() {
     src = new EventSource("/sse/" + nick);
     src.onmessage = function(event) {
       say(event.data);
@@ -174,21 +174,12 @@ __END__
     src.addEventListener("ping", function(event) {
       last_ping_time = Date.now();
     });
-  }
-
-  function connect() {
-    setup_src();
-
     last_ping_time = Date.now();
 
     setInterval(function() {
-      if(! errored && Date.now() - last_ping_time > 10000) {
-        say("! Lost contact with server");
-        src.close();
-        setup_src();
-        errored = true;
-      }
-    }, 2000)
+      if(! errored && Date.now() - last_ping_time > 5000)
+        say("! Might have lost contact with server");
+    }, 1000)
   }
 
   function keydown(t, e) {
