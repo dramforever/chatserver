@@ -106,6 +106,7 @@ __END__
  
   #list {
     margin-left: 20px;
+    margin-right: 20px;
   }
 
   #thebox {
