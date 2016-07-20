@@ -90,7 +90,7 @@ __END__
   }
 
   function keydown(t, e) {
-    if(e.keyIdentifier == "Enter") {
+    if(e.keyIdentifier == "Enter" && t.value != "") {
       if(nick) {
         var xhr = new XMLHttpRequest();
         xhr.open("POST", "/post/" + nick);
