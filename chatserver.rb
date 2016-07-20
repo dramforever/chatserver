@@ -181,9 +181,10 @@ __END__
     last_ping_time = Date.now();
 
     setInterval(function() {
-      if(! errored && Date.now() - last_ping_time > 5000)
+      if(! errored && Date.now() - last_ping_time > 5000) {
         say("! Might have lost contact with server");
         errored = true;
+      }
     }, 1000)
   }
 
