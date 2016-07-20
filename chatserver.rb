@@ -189,7 +189,7 @@ __END__
   }
 
   function keydown(t, e) {
-    if(e.key == "Enter" && t.value != "") {
+    if((e.key == "Enter" || e.keyIdentifier == "Enter") && t.value != "") {
       if(nick) {
         theMessage = t.value;
         t.value = "";
