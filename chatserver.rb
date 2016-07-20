@@ -95,10 +95,10 @@ __END__
         var xhr = new XMLHttpRequest();
         xhr.open("POST", "/post/" + nick);
         xhr.onload = function() {
-          t.value = "";
           t.focus();
         }
         xhr.send(t.value);
+        t.value = "";
       } else {
         nick = t.value.replace(/[^a-zA-Z]/g, "");
         t.value = "";
