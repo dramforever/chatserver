@@ -57,7 +57,7 @@ get "/sse/:nick" do
 
   headers "Content-Type" => "text/event-stream"
 
-  stream :keep_open do |f|
+  stream do |f|
     if @last_event_id
       f << message("* Reconnected")
     else
@@ -76,6 +76,11 @@ get "/sse/:nick" do
     end
 
     $subs << f
+
+    loop do
+      f << "event: ping\r\ndata: ping\r\nid: #{$msgs.length - 1}\r\n\r\n"
+      sleep 5
+    end
   end
 end
 
@@ -127,7 +132,7 @@ __END__
 </style>
 <script>
   var list = document.getElementById("list");
-  var src, nick;
+  var src, nick, last_ping_time, errored = false;
 
   function say(msg) {
     var shouldScroll =
@@ -153,11 +158,31 @@ __END__
       say(event.data);
     }
     src.onerror = function(event) {
-      if(src.readyState == src.CONNECTING)
-        say("! Reconnecting");
-      else
-        say("! EventSource error");
+      if(! errored) {
+        if(src.readyState == src.CONNECTING)
+          say("! Reconnecting");
+        else
+          say("! EventSource error");
+        errored = true;
+      }
     }
+
+    src.onopen = function(event) {
+      errored = false;
+    }
+
+    src.addEventListener("ping", function(event) {
+      last_ping_time = Date.now();
+    });
+
+    last_ping_time = Date.now();
+
+    setInterval(function() {
+      if(! errored && Date.now() - last_ping_time > 10000) {
+        say("! Lost contact with server");
+        errored = true;
+      }
+    }, 2000)
   }
 
   function keydown(t, e) {
