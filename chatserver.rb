@@ -68,12 +68,10 @@ end
 __END__
 
 @@ home
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <input onkeydown="keydown(this, event)" />
-
 <ul id="list"></ul>
-
 <style> body { font-size: 16; font-family: Consolas, monospace; } </style>
-
 <script>
   var list = document.getElementById("list");
   var src, nick;
