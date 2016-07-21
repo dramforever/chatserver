@@ -106,7 +106,7 @@ __END__
   body {
     font-size: 16px;
     font-family: Consolas, monospace;
-    padding-bottom: 45px;
+    padding-bottom: 50px;
   }
  
   #list {
@@ -122,6 +122,7 @@ __END__
     padding: 3px;
     padding-left: 10px;
     padding-bottom: 13px;
+    padding-top: 13px;
     font-size: 16px;
     font-family: Consolas, monospace;
   }
