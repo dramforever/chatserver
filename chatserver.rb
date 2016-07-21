@@ -150,6 +150,19 @@ __END__
     list.appendChild(li);
 
     if(shouldScroll) li.scrollIntoView();
+        
+    if(document.visibilityState == "hidden" && msg[0] != "*" && msg[11] != "*") {
+      var mss = msg.replace(/^\[[0-9:]+\] /, "").split(": ", 2);
+      if(mss.length == 2) {
+        Notification.requestPermission(function() {
+          new Notification(mss[0], { body: mss[1] });
+        });
+      } else if(msg[0] == "!") {
+        Notification.requestPermission(function() {
+          new Notification("Attention", { body: mss.substring(2) });
+        });
+      }
+    }
   }
 
   function connect() {
